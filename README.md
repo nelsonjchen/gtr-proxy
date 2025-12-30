@@ -12,27 +12,6 @@ Cloudflare Workers can be used to address these issues:
 - By serving as a secure bridge that holds and injects authentication cookies.
 - Cloudflare Workers are accessed over HTTP/3 or HTTP/2 which web browsers multiplex requests over a single connection and aren't bound by the 6 connections limit in the browser. This can be used to convert Azure's HTTP 1.1 endpoint to HTTP/3 or HTTP/2 and the GTR extension in the browser can command more chunks to be downloaded by Azure simultaneously through the proxy. Speeds of up to around 8.7GB/s can be achieved with this proxy from the browser versus 180MB/s with a direct connection to Azure's endpoint. For reliability reasons, this is limited to 1.0GB/s, but that's still fairly high speed.
 
-## Authentication and Cookies
-
-Google Takeout requires requests to be authenticated with cookies. This proxy supports passing these cookies.
-
-The client (e.g., the GTR extension) must:
-
-1.  Capture the required google.com cookies from the Google Takeout session.
-2.  Compress the cookie string using zlib (deflate).
-3.  Base64 encode the compressed data.
-4.  Append the encoded string as the `a` query parameter to the proxied URL.
-
-The proxy then:
-
-1.  Decodes the base64 string.
-2.  Decompresses the zlib data.
-3.  Injects the cookies into the `Cookie` header of the upstream request to Google.
-
-**Note:** This mechanism is handled automatically by the GTR extension.
-
-A public instance of this service is provided, but you should run your own private instance of this proxy for privacy reasons. If so, here is the source.
-
 # Usage
 
 In general, you are expected to use the [Gargantuan Takeout Rocket (GTR)][gtr] extension with this.
@@ -47,9 +26,9 @@ Logs are not stored on this service but I reserve the right to stream the logs t
 
 ## Private Instance
 
-You may be interested in running your own private instance so your data does not go through my public proxy.
+You should be interested in running your own private instance so your primary Google Takeout data does not go through my public proxy.
 
-Please try a Google Takeout with a small, non-sensitive, or already public data on your Google account to produce a non-sensitive Google Takeout test archive to test the public instance of the proxy to get familiar with the GTR toolkit first before setting up a private instance of this proxy for your actual sensitive and non-public takeout data.
+You can try a Google Takeout with a small, non-sensitive, or already public data on a non-important Google account to produce a Google Takeout test archive to test the public instance of the proxy to get familiar with the GTR toolkit first before setting up a private instance of this proxy for your actual sensitive and non-public takeout data.
 
 Use this easy-to-use button:
 
@@ -86,9 +65,26 @@ This tool is implemented to run on Cloudflare Workers as:
 - The worker can be deployed with a button.
 - Cloudflare allows fetching and streaming of data from other URLs programmatically.
 - [Cloudflare Worker endpoints are HTTP/3 compatible and workers can comfortably connect to HTTP 1.1 endpoints.][cfhttp3]
-- Cloudflare Workers are globally deployed. If you transfer from Google in the EU to Azure in the EU, the worker proxy is also in the EU and your data stays in the EU for the whole time. Same for Australia, US, and so on. Other providers force users to choose and they better choose correctly or otherwise they get a large bandwidth bill or users are unknowingly transferring data across undesired borders.
+- Cloudflare Workers are globally deployed. If you transfer from Google in the EU to Azure in the EU, the worker proxy is also in the EU and your data stays in the EU for the whole time. Same for Australia, US, and so on. Other providers force users to choose regions and they better choose correctly or otherwise they get a large bandwidth bill or users are unknowingly transferring data across undesired borders.
 
 I am not aware of any other provider with the same characteristics as Cloudflare.
+
+### Authentication and Cookies
+
+Google Takeout requires requests to be authenticated with cookies. This proxy supports passing these cookies.
+
+The client (e.g., the GTR extension) must:
+1.  Capture the required google.com cookies from the Google Takeout session.
+2.  Compress the cookie string using zlib (deflate).
+3.  Base64 encode the compressed data.
+4.  Append the encoded string as the `a` query parameter to the proxied URL.
+
+The proxy then:
+1.  Decodes the base64 string.
+2.  Decompresses the zlib data.
+3.  Injects the cookies into the `Cookie` header of the upstream request to Google.
+
+**Note:** This mechanism is handled automatically by the GTR extension.
 
 
 ```mermaid
