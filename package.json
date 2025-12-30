@@ -41,7 +41,7 @@
     "serialize-error": "^11.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.7.2",
-    "vitest": "2.1.8",
+    "vitest": "2.1.9",
     "wrangler": "^4.0.0"
   }
 }
