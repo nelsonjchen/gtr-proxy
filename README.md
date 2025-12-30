@@ -10,7 +10,7 @@ This proxy is required as:
 Cloudflare Workers can be used to address these issues:
 
 - By serving as a secure bridge that holds and injects authentication cookies.
-- Cloudflare Workers are accessed over HTTP/3 or HTTP/2 which web browsers multiplex requests over a single connection and aren't bound by the 6 connections limit in the browser. This can be used to convert Azure's HTTP 1.1 endpoint to HTTP/3 or HTTP/2 and the GTR extension in the browser can command more chunks to be downloaded by Azure simultaneously through the proxy. Speeds of up to around 8.7GB/s can be achieved with this proxy from the browser versus 180MB/s with a direct connection to Azure's endpoint. For reliability reasons, this is limited to 1.0GB/s, but that's still fairly high speed.
+- Cloudflare Workers are accessed over HTTP/3 or HTTP/2 which web browsers multiplex requests over a single connection and aren't bound by the 6 connections limit in the browser. This can be used to convert Azure's HTTP 1.1 endpoint to HTTP/3 or HTTP/2 and the GTR extension in the browser can command more chunks to be downloaded by Azure simultaneously through the proxy. Speeds of up to around 8.7GB/s can be achieved with this proxy from the browser versus 180MB/s with a direct connection to Azure's endpoint. For reliability reasons, this is limited to 300MB/s, but that's still fairly high speed and you can scale connections up.
 
 # Usage
 
