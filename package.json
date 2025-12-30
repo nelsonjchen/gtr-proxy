@@ -4,16 +4,16 @@
   "description": "GTR Proxy",
   "main": "dist/worker.mjs",
   "scripts": {
-    "build": "esbuild --bundle --platform=node --target=node12 --outfile=dist/worker.mjs src/index.ts",
+    "build": "wrangler deploy --dry-run",
     "predev": "npm run build",
-    "dev": "miniflare --live-reload --debug --modules dist/worker.mjs",
-    "dev:remote": "wrangler dev",
+    "dev": "wrangler dev",
+    "dev:remote": "wrangler dev --remote",
     "types:check": "tsc && tsc -p test/tsconfig.json",
     "format": "prettier --write  '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "lint": "eslint --max-warnings=0 src && prettier --check '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "pretest": "npm run build",
-    "test": "node --experimental-vm-modules --no-warnings node_modules/jest/bin/jest.js",
-    "deploy": "wrangler publish"
+    "test": "vitest",
+    "deploy": "wrangler deploy"
   },
   "author": "author",
   "license": "MIT OR Apache-2.0",
@@ -25,27 +25,23 @@
     ]
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20221111.1",
-    "@types/jest": "^29.2.3",
-    "@types/node": "^18.11.9",
+    "@cloudflare/vitest-pool-workers": "^0.6.4",
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "@types/node": "^22.10.2",
     "@types/pako": "^2.0.4",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
     "@typescript-eslint/parser": "^5.45.0",
     "cross-env": "^7.0.3",
-    "dotenv": "^16.0.3",
-    "esbuild": "^0.15.16",
+    "dotenv": "^16.4.7",
     "eslint": "^8.28.0",
     "eslint-config-prettier": "^8.1.0",
     "eslint-config-typescript": "^3.0.0",
-    "jest": "^29.3.1",
-    "jest-environment-miniflare": "^2.5.0",
-    "miniflare": "^2.11.0",
     "pako": "^2.1.0",
     "prettier": "^2.8.0",
     "serialize-error": "^11.0.0",
-    "ts-jest": "^29.0.3",
     "ts-node": "^10.9.1",
-    "typescript": "^4.9.3",
-    "wrangler": "^2.7.1"
+    "typescript": "^5.7.2",
+    "vitest": "2.1.8",
+    "wrangler": "^4.0.0"
   }
 }

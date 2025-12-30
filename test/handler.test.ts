@@ -1,3 +1,9 @@
+import { describe, expect, test, vi, afterEach, beforeEach } from 'vitest'
+import { env } from 'cloudflare:test'
+
+vi.mock('../src/state_compression', () => ({
+  decodeState: vi.fn(() => 'Cookie=dummy'),
+}))
 import {
   handleRequest,
   validGoogleTakeoutUrl,
@@ -27,9 +33,13 @@ describe('handler utilities', () => {
 })
 
 describe('handler', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   test('redirect visiting the "front page" to GitHub', async () => {
     const result = await handleRequest(
-      new Request(`https://example.com/`, {method: 'GET'}),
+      new Request(`https://example.com/`, { method: 'GET' }),
     )
     expect(result.status).toEqual(302)
     expect(result.headers.get('Location')).toContain('github.com')
@@ -37,12 +47,23 @@ describe('handler', () => {
 })
 
 describe('azure proxy handler', () => {
+  beforeEach(() => {
+    // Default mock for Azure tests: return success (201 or 200)
+    global.fetch = vi.fn().mockResolvedValue(new Response('', { status: 201 }))
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
 
   test('handles proxying to azure', async () => {
+    // This specific test EXPECTS 403, so we override the default mock
+    global.fetch = vi.fn().mockResolvedValue(new Response('', { status: 403 }))
+
     const result = await handleRequest(
       new Request(
         `https://example.com/p-azb/urlcopytest/some-container/some_file.dat?sp=racwd&st=2022-04-03T02%3A09%3A13Z&se=2022-04-03T02%3A20%3A13Z&spr=https&sv=2020-08-04&sr=c&sig=u72iEGi5SLkPg8B7QVI5HXfHSnr3MOse%2FzWzhaYdbbU%3D`,
-        {method: 'GET'},
+        { method: 'GET' },
       ),
     )
 
@@ -51,8 +72,10 @@ describe('azure proxy handler', () => {
   })
 
   test('handles proxying a transload request to azure with azure transloading from cloudflare itself', async () => {
+    global.fetch = vi.fn().mockResolvedValue(new Response('', { status: 201 })) // Azure PutBlock returns 201 normally
+
     // Not exactly a clean unit test since it depends on a properly deployed proxy already, but it'll do.
-    const AZ_STORAGE_TEST_URL_SEGMENT = process.env.AZ_STORAGE_TEST_URL_SEGMENT
+    const AZ_STORAGE_TEST_URL_SEGMENT = (env as any).AZ_STORAGE_TEST_URL_SEGMENT
     if (!AZ_STORAGE_TEST_URL_SEGMENT) {
       throw new Error(
         'AZ_STORAGE_TEST_URL_SEGMENT environment variable is not set',
@@ -86,7 +109,7 @@ describe('azure proxy handler', () => {
 
   test('handles proxying a transload request to azure with azure transloading from cloudflare via the proxy', async () => {
     // Not exactly a clean unit test since it depends on a properly deployed proxy already, but it'll do.
-    const AZ_STORAGE_TEST_URL_SEGMENT = process.env.AZ_STORAGE_TEST_URL_SEGMENT
+    const AZ_STORAGE_TEST_URL_SEGMENT = (env as any).AZ_STORAGE_TEST_URL_SEGMENT
     if (!AZ_STORAGE_TEST_URL_SEGMENT) {
       throw new Error(
         'AZ_STORAGE_TEST_URL_SEGMENT environment variable is not set',
@@ -128,7 +151,7 @@ describe('azure proxy handler', () => {
 
   test('handles proxying a transload request with encoded URL to azure with azure transloading from cloudflare via the proxy', async () => {
     // Not exactly a clean unit test since it depends on a properly deployed proxy already, but it'll do.
-    const AZ_STORAGE_TEST_URL_SEGMENT = process.env.AZ_STORAGE_TEST_URL_SEGMENT
+    const AZ_STORAGE_TEST_URL_SEGMENT = (env as any).AZ_STORAGE_TEST_URL_SEGMENT
     if (!AZ_STORAGE_TEST_URL_SEGMENT) {
       throw new Error(
         'AZ_STORAGE_TEST_URL_SEGMENT environment variable is not set',
@@ -170,7 +193,7 @@ describe('azure proxy handler', () => {
 
   test('handles proxying a transload request with plus in the encoded URL to azure with azure transloading from cloudflare via the proxy', async () => {
     // Not exactly a clean unit test since it depends on a properly deployed proxy already, but it'll do.
-    const AZ_STORAGE_TEST_URL_SEGMENT = process.env.AZ_STORAGE_TEST_URL_SEGMENT
+    const AZ_STORAGE_TEST_URL_SEGMENT = (env as any).AZ_STORAGE_TEST_URL_SEGMENT
     if (!AZ_STORAGE_TEST_URL_SEGMENT) {
       throw new Error(
         'AZ_STORAGE_TEST_URL_SEGMENT environment variable is not set',
@@ -213,23 +236,31 @@ describe('azure proxy handler', () => {
 })
 
 describe('takeout proxy handler', () => {
- test('handles proxying to takeout test server on non-existent link', async () => {
-   const result = await handleRequest(
-     new Request(
-       `https://example.com/p/put-block-from-url-esc-issue-demo-server-3vngqvvpoq-uc.a.run.app/red/blue.txt`,
-       {method: 'GET'},
-     ),
-   )
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
 
-   expect(result.status).toEqual(404)
-   expect(await result.text()).toEqual('This path actually doesn\'t exist.')
- })
+  test('handles proxying to takeout test server on non-existent link', async () => {
+    global.fetch = vi.fn().mockResolvedValue(new Response('This path actually doesn\'t exist.', { status: 404 }))
 
-  test('handles proxying to takeout test server on existent link with escaping', async () => {
     const result = await handleRequest(
       new Request(
-        `https://example.com/p/put-block-from-url-esc-issue-demo-server-3vngqvvpoq-uc.a.run.app/red%2Fblue.txt`,
-        {method: 'GET'},
+        `https://example.com/p/put-block-from-url-esc-issue-demo-server-3vngqvvpoq-uc.a.run.app/red/blue.txt?a=dummy`,
+        { method: 'GET' },
+      ),
+    )
+
+    expect(result.status).toEqual(404)
+    expect(await result.text()).toEqual('This path actually doesn\'t exist.')
+  })
+
+  test('handles proxying to takeout test server on existent link with escaping', async () => {
+    global.fetch = vi.fn().mockResolvedValue(new Response('This path exists!', { status: 200 }))
+
+    const result = await handleRequest(
+      new Request(
+        `https://example.com/p/put-block-from-url-esc-issue-demo-server-3vngqvvpoq-uc.a.run.app/red%2Fblue.txt?a=dummy`,
+        { method: 'GET' },
       ),
     )
 
@@ -238,10 +269,12 @@ describe('takeout proxy handler', () => {
   })
 
   test('handles proxying to takeout test server on existent link with extra escaping', async () => {
+    global.fetch = vi.fn().mockResolvedValue(new Response('This path exists!', { status: 200 }))
+
     const result = await handleRequest(
       new Request(
-        `https://example.com/p/put-block-from-url-esc-issue-demo-server-3vngqvvpoq-uc.a.run.app/red%252Fblue.txt`,
-        {method: 'GET'},
+        `https://example.com/p/put-block-from-url-esc-issue-demo-server-3vngqvvpoq-uc.a.run.app/red%252Fblue.txt?a=dummy`,
+        { method: 'GET' },
       ),
     )
 
@@ -250,10 +283,12 @@ describe('takeout proxy handler', () => {
   })
 
   test('handles proxying to takeout test server on existent link with extra escaping and dummy appended', async () => {
+    global.fetch = vi.fn().mockResolvedValue(new Response('This path exists!', { status: 200 }))
+
     const result = await handleRequest(
       new Request(
-        `https://example.com/p/put-block-from-url-esc-issue-demo-server-3vngqvvpoq-uc.a.run.app/red%252Fblue.txt/dummy.bin`,
-        {method: 'GET'},
+        `https://example.com/p/put-block-from-url-esc-issue-demo-server-3vngqvvpoq-uc.a.run.app/red%252Fblue.txt/dummy.bin?a=dummy`,
+        { method: 'GET' },
       ),
     )
 
