@@ -254,6 +254,30 @@ describe('takeout proxy handler', () => {
     expect(await result.text()).toEqual('This path actually doesn\'t exist.')
   })
 
+  test('handles proxying a HEAD request as GET to takeout test server', async () => {
+    // Mock the response as if it were a GET request (with body)
+    global.fetch = vi.fn().mockResolvedValue(new Response('This path exists!', { status: 200, headers: { 'Content-Length': '17' } }))
+
+    const result = await handleRequest(
+      new Request(
+        `https://example.com/p/put-block-from-url-esc-issue-demo-server-3vngqvvpoq-uc.a.run.app/red/blue.txt?a=dummy`,
+        { method: 'HEAD' },
+      ),
+    )
+
+    expect(result.status).toEqual(200)
+    // The fetch mock should have been called with GET
+    const fetchCalls = global.fetch.mock.calls;
+    expect(fetchCalls.length).toBeGreaterThan(0);
+    const [url, init] = fetchCalls[0];
+    expect(url.toString()).toContain('https://');
+    expect(init).toHaveProperty('method', 'GET');
+
+    // The response body should be null/empty for a HEAD request
+    expect(await result.text()).toEqual('')
+    expect(result.headers.get('Content-Length')).toEqual('17')
+  })
+
   test('handles proxying to takeout test server on existent link with escaping', async () => {
     global.fetch = vi.fn().mockResolvedValue(new Response('This path exists!', { status: 200 }))
 

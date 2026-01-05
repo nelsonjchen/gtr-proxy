@@ -93,20 +93,33 @@ export async function handleProxyToGoogleTakeoutRequest(
     )
   }
 
+  // For HEAD requests to retrieve the content-length of the Takeout archive,
+  // actually send as GET, since Google Takeout will sometimes not return
+  // the content-length for HEAD requests. The fetch API resolves its
+  // promise after the response headers arrive.
+  const fetchMethod = request.method === 'HEAD' ? 'GET' : request.method;
+
   // Pass the original URL processed. A URL object will malform the `%2B` to `+`.
   const originalResponse = await fetch(extracted_url, {
-    method: request.method,
+    method: fetchMethod,
     headers: headersWithCookies
   })
 
-  const response = new Response(originalResponse.body, {
-    status: originalResponse.status,
-    headers: originalResponse.headers,
-  })
+  console.log("Response Headers:", JSON.stringify(Object.fromEntries(originalResponse.headers.entries())));
 
-  console.log(response)
-
-  return response
+  if (request.method === 'HEAD') {
+    // For HEAD requests, we sent a GET, but only return the headers and no body.
+    return new Response(null, {
+      status: originalResponse.status,
+      headers: originalResponse.headers,
+    });
+  } else {
+    // For non-HEAD requests, return the original body.
+    return new Response(originalResponse.body, {
+      status: originalResponse.status,
+      headers: originalResponse.headers,
+    });
+  }
 }
 
 export async function handleProxyToAzStorageRequest(request: Request): Promise<Response> {
